@@ -11,6 +11,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
+/**
+ * ViewModel for the settings screen.
+ * Currently only handles number format preferences.
+ */
 class SettingsViewModel(
     private val settingsRepository: SettingsRepository
 ) : ViewModel() {

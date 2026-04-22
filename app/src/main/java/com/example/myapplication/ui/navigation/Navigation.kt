@@ -8,12 +8,21 @@ import com.example.myapplication.ui.screens.converter.ConverterScreen
 import com.example.myapplication.ui.screens.editlist.EditListScreen
 import com.example.myapplication.ui.screens.settings.SettingsScreen
 
+/**
+ * Navigation routes for the app.
+ */
 sealed class Screen(val route: String) {
     data object Converter : Screen("converter")
     data object Settings : Screen("settings")
     data object EditList : Screen("edit_list")
 }
 
+/**
+ * Sets up navigation between the three screens:
+ * - Converter (main screen)
+ * - Settings (number format)
+ * - EditList (show/hide/reorder currencies)
+ */
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
@@ -30,15 +39,11 @@ fun AppNavigation() {
         }
 
         composable(Screen.Settings.route) {
-            SettingsScreen(
-                onNavigateBack = { navController.popBackStack() }
-            )
+            SettingsScreen(onNavigateBack = { navController.popBackStack() })
         }
 
         composable(Screen.EditList.route) {
-            EditListScreen(
-                onNavigateBack = { navController.popBackStack() }
-            )
+            EditListScreen(onNavigateBack = { navController.popBackStack() })
         }
     }
 }

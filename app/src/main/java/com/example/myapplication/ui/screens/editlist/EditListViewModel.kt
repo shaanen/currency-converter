@@ -13,12 +13,23 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
+/**
+ * UI state for the edit list screen.
+ */
 data class EditListUiState(
     val currencies: List<Currency> = emptyList(),
     val searchQuery: String = "",
     val isLoading: Boolean = true
 )
 
+/**
+ * ViewModel for managing the currency list editor.
+ *
+ * Handles:
+ * - Searching/filtering currencies
+ * - Toggling visibility (show/hide)
+ * - Reordering visible currencies via drag-and-drop
+ */
 class EditListViewModel(
     private val repository: ExchangeRateRepository
 ) : ViewModel() {
@@ -29,6 +40,7 @@ class EditListViewModel(
         repository.getAllCurrencies(),
         _searchQuery
     ) { currencies, query ->
+        // Filter by search query
         val filteredCurrencies = if (query.isBlank()) {
             currencies
         } else {
@@ -38,6 +50,7 @@ class EditListViewModel(
             }
         }
 
+        // Sort: visible currencies first (by position), then hidden (alphabetically)
         EditListUiState(
             currencies = filteredCurrencies.sortedWith(
                 compareByDescending<Currency> { it.isVisible }
@@ -63,6 +76,9 @@ class EditListViewModel(
         }
     }
 
+    /**
+     * Moves a currency from one position to another in the visible list.
+     */
     fun moveCurrency(from: Int, to: Int) {
         viewModelScope.launch {
             val currentList = uiState.value.currencies.filter { it.isVisible }.toMutableList()

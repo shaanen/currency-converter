@@ -62,6 +62,9 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+/**
+ * Main converter screen showing list of currencies with editable values.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConverterScreen(
@@ -73,6 +76,7 @@ fun ConverterScreen(
     val editingCurrencyCode by viewModel.editingCurrencyCode.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
+    // Show errors as snackbar
     LaunchedEffect(uiState.error) {
         uiState.error?.let {
             snackbarHostState.showSnackbar(it)
@@ -84,7 +88,7 @@ fun ConverterScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
             Text(
-                text = "V0.20",
+                text = "V0.21",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                 modifier = Modifier
@@ -100,6 +104,7 @@ fun ConverterScreen(
                     containerColor = MaterialTheme.colorScheme.surface
                 ),
                 actions = {
+                    // Refresh button
                     IconButton(onClick = { viewModel.refreshRates() }) {
                         if (uiState.isRefreshing) {
                             CircularProgressIndicator(
@@ -110,9 +115,11 @@ fun ConverterScreen(
                             Icon(Icons.Default.Refresh, contentDescription = "Refresh")
                         }
                     }
+                    // Edit currency list
                     IconButton(onClick = onNavigateToEditList) {
                         Icon(Icons.Default.Edit, contentDescription = "Edit list")
                     }
+                    // Settings
                     IconButton(onClick = onNavigateToSettings) {
                         Icon(Icons.Default.Settings, contentDescription = "Settings")
                     }
@@ -125,6 +132,7 @@ fun ConverterScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
+            // Show when rates were last updated
             if (uiState.lastUpdated != null) {
                 Text(
                     text = "Rates from ${formatTimestamp(uiState.lastUpdated!!)}",
@@ -137,6 +145,7 @@ fun ConverterScreen(
             }
 
             if (uiState.isLoading && uiState.currencies.isEmpty()) {
+                // Loading state
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -144,6 +153,7 @@ fun ConverterScreen(
                     CircularProgressIndicator()
                 }
             } else {
+                // Currency list with pull-to-refresh
                 PullToRefreshBox(
                     isRefreshing = uiState.isRefreshing,
                     onRefresh = { viewModel.refreshRates() },
@@ -176,6 +186,9 @@ fun ConverterScreen(
     }
 }
 
+/**
+ * Single currency row with flag, code, and editable value.
+ */
 @Composable
 private fun CurrencyRow(
     currencyWithValue: CurrencyWithValue,
@@ -189,19 +202,15 @@ private fun CurrencyRow(
     val focusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
 
-    // Track if this is the first tap (select all) or second tap (place cursor)
+    // Track tap state: first tap selects all, second tap places cursor
     var isFirstTap by remember { mutableStateOf(true) }
 
-    // Store the ORIGINAL TEXT when editing started - compare against this, not parsed values
+    // Store original text to detect actual changes
     var originalText by remember { mutableStateOf("") }
-
-    // Track if user has made any text changes
     var userHasEdited by remember { mutableStateOf(false) }
-
-    // Local text field value for editing
     var textFieldValue by remember { mutableStateOf(TextFieldValue("")) }
 
-    // When editing starts, initialize with selected text
+    // Initialize text field when editing starts
     LaunchedEffect(isEditing) {
         if (isEditing) {
             val text = formatValueForEditing(currencyWithValue.value, decimalFormat)
@@ -209,7 +218,7 @@ private fun CurrencyRow(
             userHasEdited = false
             textFieldValue = TextFieldValue(
                 text = text,
-                selection = TextRange(0, text.length) // Select all on first tap
+                selection = TextRange(0, text.length)  // Select all on first tap
             )
             isFirstTap = true
             focusRequester.requestFocus()
@@ -229,13 +238,12 @@ private fun CurrencyRow(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = currency.flag,
-                fontSize = 32.sp
-            )
+            // Flag emoji
+            Text(text = currency.flag, fontSize = 32.sp)
 
             Spacer(modifier = Modifier.width(12.dp))
 
+            // Currency code
             Column(modifier = Modifier.width(60.dp)) {
                 Text(
                     text = currency.code,
@@ -246,12 +254,13 @@ private fun CurrencyRow(
 
             Spacer(modifier = Modifier.weight(1f))
 
+            // Editable value
             Box(
                 modifier = Modifier
                     .weight(2f)
                     .clickable {
                         if (isEditing && isFirstTap) {
-                            // Second tap - place cursor at end
+                            // Second tap: place cursor at end
                             isFirstTap = false
                             textFieldValue = textFieldValue.copy(
                                 selection = TextRange(textFieldValue.text.length)
@@ -265,13 +274,12 @@ private fun CurrencyRow(
                     onValueChange = { newValue ->
                         if (!isEditing) return@BasicTextField
 
+                        // Filter to only digits and decimal separator
                         val filteredText = newValue.text.filter { char ->
                             char.isDigit() || char == decimalFormat.decimalSeparator
                         }
 
-                        // Check if this is an actual text change (not just selection/cursor change)
                         val textActuallyChanged = filteredText != textFieldValue.text
-
                         if (textActuallyChanged) {
                             isFirstTap = false
                             userHasEdited = true
@@ -279,9 +287,7 @@ private fun CurrencyRow(
 
                         textFieldValue = newValue.copy(text = filteredText)
 
-                        // Only call onValueChanged if:
-                        // 1. User has actually edited (not just focus change)
-                        // 2. The text is different from the original
+                        // Only trigger conversion if user actually edited and text differs
                         if (userHasEdited && filteredText != originalText) {
                             parseValue(filteredText, decimalFormat)?.let { parsed ->
                                 onValueChanged(parsed)
@@ -321,6 +327,9 @@ private fun CurrencyRow(
     }
 }
 
+/**
+ * Formats value for display with thousands separators and 2 decimal places.
+ */
 private fun formatValue(value: Double, format: DecimalFormat): String {
     val wholePart = value.toLong()
     val decimalPart = ((value - wholePart) * 100).toLong()
@@ -334,6 +343,9 @@ private fun formatValue(value: Double, format: DecimalFormat): String {
     return "$wholePartFormatted${format.decimalSeparator}${decimalPart.toString().padStart(2, '0')}"
 }
 
+/**
+ * Formats value for editing (no thousands separator, minimal decimal places).
+ */
 private fun formatValueForEditing(value: Double, format: DecimalFormat): String {
     return if (value == value.toLong().toDouble()) {
         value.toLong().toString()
@@ -342,13 +354,20 @@ private fun formatValueForEditing(value: Double, format: DecimalFormat): String 
     }
 }
 
+/**
+ * Parses user input back to a Double.
+ */
 private fun parseValue(text: String, format: DecimalFormat): Double? {
     if (text.isBlank()) return 0.0
-    val normalized = text.replace(format.thousandsSeparator.toString(), "")
+    val normalized = text
+        .replace(format.thousandsSeparator.toString(), "")
         .replace(format.decimalSeparator, '.')
     return normalized.toDoubleOrNull()
 }
 
+/**
+ * Formats timestamp as relative time (e.g., "5 minutes ago").
+ */
 private fun formatTimestamp(timestamp: Long): String {
     val now = System.currentTimeMillis()
     val diff = now - timestamp

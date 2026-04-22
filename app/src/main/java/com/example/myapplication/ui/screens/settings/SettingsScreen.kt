@@ -28,6 +28,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.myapplication.data.repository.DecimalFormat
 
+/**
+ * Settings screen for configuring number format preferences.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
@@ -73,6 +76,7 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // List all format options
             DecimalFormat.entries.forEach { format ->
                 Row(
                     modifier = Modifier

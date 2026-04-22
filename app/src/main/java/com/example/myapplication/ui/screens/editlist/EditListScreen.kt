@@ -1,7 +1,6 @@
 package com.example.myapplication.ui.screens.editlist
 
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
@@ -40,7 +39,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -57,6 +55,12 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.myapplication.domain.model.Currency
 import kotlin.math.roundToInt
 
+/**
+ * Screen for managing the currency list.
+ * - Tap checkbox to show/hide currencies
+ * - Long-press and drag to reorder visible currencies
+ * - Search to filter the list
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditListScreen(
@@ -85,6 +89,7 @@ fun EditListScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
+            // Search field
             TextField(
                 value = uiState.searchQuery,
                 onValueChange = { viewModel.onSearchQueryChanged(it) },
@@ -119,9 +124,11 @@ fun EditListScreen(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             )
 
+            // Split into visible and hidden sections
             val visibleCurrencies = uiState.currencies.filter { it.isVisible }
             val hiddenCurrencies = uiState.currencies.filter { !it.isVisible }
 
+            // Drag state for reordering
             var draggedItemIndex by remember { mutableIntStateOf(-1) }
             var dragOffset by remember { mutableFloatStateOf(0f) }
             val itemHeight = 72.dp
@@ -160,27 +167,22 @@ fun EditListScreen(
                             modifier = Modifier
                                 .zIndex(if (isDragging) 1f else 0f)
                                 .offset {
-                                    IntOffset(
-                                        0,
-                                        if (isDragging) dragOffset.roundToInt() else 0
-                                    )
+                                    IntOffset(0, if (isDragging) dragOffset.roundToInt() else 0)
                                 }
                                 .shadow(elevation, RoundedCornerShape(12.dp))
                                 .pointerInput(visibleCurrencies) {
                                     detectDragGesturesAfterLongPress(
-                                        onDragStart = {
-                                            draggedItemIndex = index
-                                        },
+                                        onDragStart = { draggedItemIndex = index },
                                         onDrag = { change, dragAmount ->
                                             change.consume()
                                             dragOffset += dragAmount.y
 
-                                            // Calculate target position
+                                            // Calculate target position based on drag distance
                                             val itemHeightPx = itemHeight.toPx() + 8.dp.toPx()
-                                            val targetIndex =
-                                                (index + (dragOffset / itemHeightPx).roundToInt())
-                                                    .coerceIn(0, visibleCurrencies.size - 1)
+                                            val targetIndex = (index + (dragOffset / itemHeightPx).roundToInt())
+                                                .coerceIn(0, visibleCurrencies.size - 1)
 
+                                            // Move item if it crossed a threshold
                                             if (targetIndex != index && draggedItemIndex != -1) {
                                                 viewModel.moveCurrency(index, targetIndex)
                                                 draggedItemIndex = targetIndex
@@ -228,6 +230,9 @@ fun EditListScreen(
     }
 }
 
+/**
+ * Single currency item with checkbox, flag, code, name, and optional drag handle.
+ */
 @Composable
 private fun CurrencyEditItem(
     currency: Currency,
@@ -259,10 +264,7 @@ private fun CurrencyEditItem(
 
             Spacer(modifier = Modifier.width(8.dp))
 
-            Text(
-                text = currency.flag,
-                fontSize = 24.sp
-            )
+            Text(text = currency.flag, fontSize = 24.sp)
 
             Spacer(modifier = Modifier.width(12.dp))
 

@@ -1,5 +1,15 @@
 package com.example.myapplication.domain.model
 
+/**
+ * Domain model representing a currency with its exchange rate.
+ *
+ * @property code ISO 4217 currency code (e.g., "EUR", "USD")
+ * @property name Full name (e.g., "Euro", "US Dollar")
+ * @property flag Emoji flag for the currency's country
+ * @property rateToUsd Exchange rate relative to USD
+ * @property position Display order in the converter (lower = higher in list)
+ * @property isVisible Whether shown in the converter screen
+ */
 data class Currency(
     val code: String,
     val name: String,
@@ -9,7 +19,12 @@ data class Currency(
     val isVisible: Boolean = true
 )
 
+/**
+ * Static currency metadata (names and flags) for all supported currencies.
+ */
 object CurrencyInfo {
+
+    // Map of currency code -> (name, flag emoji)
     private val currencyData = mapOf(
         "AED" to Pair("UAE Dirham", "\uD83C\uDDE6\uD83C\uDDEA"),
         "AFN" to Pair("Afghan Afghani", "\uD83C\uDDE6\uD83C\uDDEB"),
@@ -185,5 +200,6 @@ object CurrencyInfo {
     fun getName(code: String): String = currencyData[code]?.first ?: code
     fun getFlag(code: String): String = currencyData[code]?.second ?: "\uD83C\uDFF3\uFE0F"
 
+    // Currencies shown by default on first install
     val defaultCurrencies = listOf("EUR", "GBP", "USD", "VND", "INR", "TRY")
 }

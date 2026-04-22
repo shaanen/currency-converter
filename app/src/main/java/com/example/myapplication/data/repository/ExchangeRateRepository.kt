@@ -10,25 +10,40 @@ import com.example.myapplication.domain.model.CurrencyInfo
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 
+/**
+ * Repository for exchange rates and user currency preferences.
+ *
+ * Handles:
+ * - Fetching rates from API and caching in database
+ * - Providing currencies with rates as observable Flows
+ * - Managing user's visible/hidden currencies and their order
+ */
 class ExchangeRateRepository(
     private val api: ExchangeRateApi,
     private val exchangeRateDao: ExchangeRateDao,
     private val userCurrencyDao: UserCurrencyDao
 ) {
+    /**
+     * Fetches latest rates from API and stores in database.
+     * On first run, also initializes default visible currencies.
+     */
     suspend fun refreshRates(): Result<Unit> {
         return try {
             val response = api.getLatestRates()
             val fetchedAt = System.currentTimeMillis()
+
+            // Convert API response to database entities
             val entities = response.rates.map { (code, rate) ->
                 ExchangeRateEntity(
                     currencyCode = code,
                     rateToUsd = rate,
-                    timestamp = response.timestamp * 1000,
+                    timestamp = response.timestamp * 1000,  // Convert to millis
                     fetchedAt = fetchedAt
                 )
             }
             exchangeRateDao.insertAll(entities)
 
+            // Initialize default currencies on first run
             if (userCurrencyDao.getCount() == 0) {
                 initializeDefaultCurrencies(response.rates.keys.toList())
             }
@@ -38,19 +53,26 @@ class ExchangeRateRepository(
         }
     }
 
+    /**
+     * Sets up default visible currencies (EUR, GBP, USD, VND, INR, TRY)
+     * and hides all other currencies.
+     */
     private suspend fun initializeDefaultCurrencies(availableCodes: List<String>) {
         val defaultCodes = CurrencyInfo.defaultCurrencies.filter { it in availableCodes }
         val otherCodes = availableCodes.filter { it !in defaultCodes }.sorted()
 
         val entities = defaultCodes.mapIndexed { index, code ->
-            UserCurrencyEntity(code, index, true)
+            UserCurrencyEntity(code, index, isVisible = true)
         } + otherCodes.mapIndexed { index, code ->
-            UserCurrencyEntity(code, defaultCodes.size + index, false)
+            UserCurrencyEntity(code, defaultCodes.size + index, isVisible = false)
         }
 
         userCurrencyDao.insertAll(entities)
     }
 
+    /**
+     * Returns visible currencies with their exchange rates, sorted by position.
+     */
     fun getVisibleCurrencies(): Flow<List<Currency>> {
         return combine(
             exchangeRateDao.getAllRates(),
@@ -58,20 +80,14 @@ class ExchangeRateRepository(
         ) { rates, userCurrencies ->
             val rateMap = rates.associateBy { it.currencyCode }
             userCurrencies.mapNotNull { userCurrency ->
-                rateMap[userCurrency.currencyCode]?.let { rate ->
-                    Currency(
-                        code = rate.currencyCode,
-                        name = CurrencyInfo.getName(rate.currencyCode),
-                        flag = CurrencyInfo.getFlag(rate.currencyCode),
-                        rateToUsd = rate.rateToUsd,
-                        position = userCurrency.position,
-                        isVisible = userCurrency.isVisible
-                    )
-                }
+                rateMap[userCurrency.currencyCode]?.toCurrency(userCurrency)
             }
         }
     }
 
+    /**
+     * Returns all currencies (visible and hidden) with their exchange rates.
+     */
     fun getAllCurrencies(): Flow<List<Currency>> {
         return combine(
             exchangeRateDao.getAllRates(),
@@ -79,23 +95,12 @@ class ExchangeRateRepository(
         ) { rates, userCurrencies ->
             val rateMap = rates.associateBy { it.currencyCode }
             userCurrencies.mapNotNull { userCurrency ->
-                rateMap[userCurrency.currencyCode]?.let { rate ->
-                    Currency(
-                        code = rate.currencyCode,
-                        name = CurrencyInfo.getName(rate.currencyCode),
-                        flag = CurrencyInfo.getFlag(rate.currencyCode),
-                        rateToUsd = rate.rateToUsd,
-                        position = userCurrency.position,
-                        isVisible = userCurrency.isVisible
-                    )
-                }
+                rateMap[userCurrency.currencyCode]?.toCurrency(userCurrency)
             }
         }
     }
 
-    suspend fun getLastUpdateTimestamp(): Long? {
-        return exchangeRateDao.getLastFetchedTimestamp()
-    }
+    suspend fun getLastUpdateTimestamp(): Long? = exchangeRateDao.getLastFetchedTimestamp()
 
     suspend fun updateCurrencyVisibility(code: String, isVisible: Boolean) {
         userCurrencyDao.updateVisibility(code, isVisible)
@@ -106,4 +111,16 @@ class ExchangeRateRepository(
             userCurrencyDao.updatePosition(currency.code, index)
         }
     }
+
+    /**
+     * Converts database entity to domain model.
+     */
+    private fun ExchangeRateEntity.toCurrency(userCurrency: UserCurrencyEntity) = Currency(
+        code = currencyCode,
+        name = CurrencyInfo.getName(currencyCode),
+        flag = CurrencyInfo.getFlag(currencyCode),
+        rateToUsd = rateToUsd,
+        position = userCurrency.position,
+        isVisible = userCurrency.isVisible
+    )
 }
