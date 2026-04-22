@@ -1,0 +1,5 @@
+# Copy this file to local.properties and add your API key
+# DO NOT commit local.properties to git
+
+# Get your API key from https://openexchangerates.org/
+OPENEXCHANGERATES_API_KEY=your_api_key_here
