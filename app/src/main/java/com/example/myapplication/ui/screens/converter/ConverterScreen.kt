@@ -84,13 +84,13 @@ fun ConverterScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
             Text(
-                text = "V0.19",
+                text = "V0.20",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 8.dp),
-                textAlign = TextAlign.Center
+                    .padding(end = 16.dp, bottom = 8.dp),
+                textAlign = TextAlign.End
             )
         },
         topBar = {
