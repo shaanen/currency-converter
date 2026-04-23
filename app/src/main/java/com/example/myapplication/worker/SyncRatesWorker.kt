@@ -44,10 +44,25 @@ class SyncRatesWorker(
                 .setRequiredNetworkType(NetworkType.CONNECTED)
                 .build()
 
+            // Calculate initial delay to align with :06 past the hour
+            val now = System.currentTimeMillis()
+            val calendar = java.util.Calendar.getInstance().apply { timeInMillis = now }
+            val currentMinute = calendar.get(java.util.Calendar.MINUTE)
+            val currentSecond = calendar.get(java.util.Calendar.SECOND)
+
+            // Minutes until next :06
+            val minutesUntilTarget = if (currentMinute < 6) {
+                6 - currentMinute
+            } else {
+                66 - currentMinute  // Next hour's :06
+            }
+            val initialDelayMillis = (minutesUntilTarget * 60 - currentSecond) * 1000L
+
             val workRequest = PeriodicWorkRequestBuilder<SyncRatesWorker>(
                 repeatInterval = 1,
                 repeatIntervalTimeUnit = TimeUnit.HOURS
             )
+                .setInitialDelay(initialDelayMillis, TimeUnit.MILLISECONDS)
                 .setConstraints(constraints)
                 .setBackoffCriteria(BackoffPolicy.LINEAR, 30, TimeUnit.MINUTES)
                 .build()

@@ -30,7 +30,6 @@ class ExchangeRateRepository(
     suspend fun refreshRates(): Result<Unit> {
         return try {
             val response = api.getLatestRates()
-            val fetchedAt = System.currentTimeMillis()
 
             // Convert API response to database entities
             val entities = response.rates.map { (code, rate) ->
@@ -38,7 +37,7 @@ class ExchangeRateRepository(
                     currencyCode = code,
                     rateToUsd = rate,
                     timestamp = response.timestamp * 1000,  // Convert to millis
-                    fetchedAt = fetchedAt
+                    fetchedAt = response.fetched_at
                 )
             }
             exchangeRateDao.insertAll(entities)

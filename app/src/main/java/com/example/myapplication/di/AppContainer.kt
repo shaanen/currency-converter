@@ -28,9 +28,9 @@ class AppContainer(context: Context) {
         })
         .build()
 
-    // Retrofit client for OpenExchangeRates API
+    // Retrofit client for exchange rates Cloudflare Worker
     private val retrofit: Retrofit = Retrofit.Builder()
-        .baseUrl("https://openexchangerates.org/api/")
+        .baseUrl("https://exchange-rates.leuk.workers.dev/")
         .client(okHttpClient)
         .addConverterFactory(GsonConverterFactory.create())
         .build()

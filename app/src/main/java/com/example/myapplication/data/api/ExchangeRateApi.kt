@@ -1,27 +1,21 @@
 package com.example.myapplication.data.api
 
-import com.example.myapplication.BuildConfig
 import retrofit2.http.GET
-import retrofit2.http.Query
 
 /**
- * API response from OpenExchangeRates.org
+ * API response from the exchange rates worker.
  */
 data class ExchangeRateResponse(
-    val disclaimer: String,
-    val license: String,
-    val timestamp: Long,      // Unix timestamp when rates were published
-    val base: String,         // Base currency (always USD for free tier)
-    val rates: Map<String, Double>  // Currency code -> rate relative to USD
+    val timestamp: Long,              // Unix timestamp when rates were published
+    val base: String,                 // Base currency (USD)
+    val rates: Map<String, Double>,   // Currency code -> rate relative to USD
+    val fetched_at: Long              // When the worker fetched the rates (millis)
 )
 
 /**
- * Retrofit interface for OpenExchangeRates API.
- * API docs: https://docs.openexchangerates.org/
+ * Retrofit interface for the Cloudflare Worker that serves exchange rates.
  */
 interface ExchangeRateApi {
-    @GET("latest.json")
-    suspend fun getLatestRates(
-        @Query("app_id") appId: String = BuildConfig.OPENEXCHANGERATES_API_KEY
-    ): ExchangeRateResponse
+    @GET("/")
+    suspend fun getLatestRates(): ExchangeRateResponse
 }
