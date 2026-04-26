@@ -201,5 +201,5 @@ object CurrencyInfo {
     fun getFlag(code: String): String = currencyData[code]?.second ?: "\uD83C\uDFF3\uFE0F"
 
     // Currencies shown by default on first install
-    val defaultCurrencies = listOf("EUR", "GBP", "USD", "VND", "INR", "TRY")
+    val defaultCurrencies = listOf("EUR","GBP", "USD", "VND", "INR", "TRY")
 }

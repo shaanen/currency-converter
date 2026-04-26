@@ -88,7 +88,7 @@ fun ConverterScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
             Text(
-                text = "V0.22",
+                text = "V0.23",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                 modifier = Modifier
@@ -99,7 +99,7 @@ fun ConverterScreen(
         },
         topBar = {
             TopAppBar(
-                title = { Text("Sjors' Currency Converter") },
+                title = { Text("For my back warmer ❤\uFE0F") },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface
                 ),
@@ -366,17 +366,33 @@ private fun parseValue(text: String, format: DecimalFormat): Double? {
 }
 
 /**
- * Formats timestamp as relative time (e.g., "5 minutes ago").
+ * Formats timestamp as "today/yesterday/date HH:MM" with "(latest available)" if within last hour.
  */
 private fun formatTimestamp(timestamp: Long): String {
     val now = System.currentTimeMillis()
-    val diff = now - timestamp
+    val timestampCal = java.util.Calendar.getInstance().apply { timeInMillis = timestamp }
+    val nowCal = java.util.Calendar.getInstance()
 
-    return when {
-        diff < 60 * 1000 -> "just now"
-        diff < 60 * 60 * 1000 -> "${diff / (60 * 1000)} minutes ago"
-        diff < 24 * 60 * 60 * 1000 -> "${diff / (60 * 60 * 1000)} hours ago"
-        diff < 7 * 24 * 60 * 60 * 1000 -> "${diff / (24 * 60 * 60 * 1000)} days ago"
-        else -> SimpleDateFormat("MMM d, yyyy", Locale.getDefault()).format(Date(timestamp))
+    val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+    val time = timeFormat.format(Date(timestamp))
+
+    val dayPrefix = when {
+        // Same day
+        timestampCal.get(java.util.Calendar.YEAR) == nowCal.get(java.util.Calendar.YEAR) &&
+        timestampCal.get(java.util.Calendar.DAY_OF_YEAR) == nowCal.get(java.util.Calendar.DAY_OF_YEAR) -> "today"
+        // Yesterday
+        timestampCal.get(java.util.Calendar.YEAR) == nowCal.get(java.util.Calendar.YEAR) &&
+        timestampCal.get(java.util.Calendar.DAY_OF_YEAR) == nowCal.get(java.util.Calendar.DAY_OF_YEAR) - 1 -> "yesterday"
+        // Older
+        else -> SimpleDateFormat("MMM d", Locale.getDefault()).format(Date(timestamp))
+    }
+
+    // Check if this is the latest available (within ~65 minutes, accounting for hourly updates at :05)
+    val isLatest = (now - timestamp) < 65 * 60 * 1000
+
+    return if (isLatest) {
+        "$dayPrefix $time (fully up-to-date)"
+    } else {
+        "$dayPrefix $time"
     }
 }
