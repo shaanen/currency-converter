@@ -18,6 +18,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
@@ -47,7 +48,9 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -88,7 +91,7 @@ fun ConverterScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
             Text(
-                text = "V0.24",
+                text = "V0.25",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                 modifier = Modifier
@@ -201,6 +204,7 @@ private fun CurrencyRow(
     val currency = currencyWithValue.currency
     val focusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
+    val clipboardManager = LocalClipboardManager.current
 
     // Track tap state: first tap selects all, second tap places cursor
     var isFirstTap by remember { mutableStateOf(true) }
@@ -253,6 +257,24 @@ private fun CurrencyRow(
             }
 
             Spacer(modifier = Modifier.weight(1f))
+
+            // Copy button (only visible when editing)
+            if (isEditing) {
+                IconButton(
+                    onClick = {
+                        val valueToCopy = formatValueForEditing(currencyWithValue.value, decimalFormat)
+                        clipboardManager.setText(AnnotatedString(valueToCopy))
+                    },
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        Icons.Default.ContentCopy,
+                        contentDescription = "Copy value",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
 
             // Editable value
             Box(
