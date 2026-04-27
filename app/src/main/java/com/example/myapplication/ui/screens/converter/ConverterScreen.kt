@@ -102,7 +102,7 @@ fun ConverterScreen(
         },
         topBar = {
             TopAppBar(
-                title = { Text("For my back warmer ❤\uFE0F") },
+                title = { Text("Currency Converter") },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface
                 ),
