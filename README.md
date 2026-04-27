@@ -13,7 +13,7 @@ A simple and fast Android currency converter app built with Jetpack Compose.
 - **Automatic sync**: Rates update hourly in the background via WorkManager (aligned to :06 past the hour)
 - **Manual refresh**: Pull-to-refresh or tap the refresh button
 - **Freshness indicator**: Shows when rates were last fetched (e.g., "today 14:30 (fully up-to-date)")
-- **Self-hosted backend**: Uses a Cloudflare Worker to fetch and cache rates
+- **Flexible backend**: Supports both Cloudflare Worker or direct OpenExchangeRates API
 
 ### Customization
 - **Show/hide currencies**: Choose which currencies appear in your converter
@@ -46,7 +46,7 @@ app/src/main/java/com/example/myapplication/
 ├── CurrencyExchangeApp.kt      # Application class, initializes dependencies
 ├── MainActivity.kt             # Single activity host for Compose
 ├── data/
-│   ├── api/                    # Retrofit API interface for Cloudflare Worker
+│   ├── api/                    # Retrofit API interface
 │   ├── db/                     # Room database, entities, DAOs
 │   └── repository/             # Data repositories (rates, settings)
 ├── di/
@@ -66,11 +66,10 @@ app/src/main/java/com/example/myapplication/
 
 ### Data Flow
 
-1. **Exchange rates** are fetched from a Cloudflare Worker
-2. The Worker fetches from OpenExchangeRates at :05 past each hour and caches in KV storage
-3. Rates are stored locally in Room database for offline access
-4. ViewModels expose UI state as StateFlow, collected by Compose screens
-5. User currency preferences (visibility, order) stored separately in Room
+1. **Exchange rates** are fetched from either a Cloudflare Worker or OpenExchangeRates directly
+2. Rates are stored locally in Room database for offline access
+3. ViewModels expose UI state as StateFlow, collected by Compose screens
+4. User currency preferences (visibility, order) stored separately in Room
 
 ### Background Sync
 
@@ -84,13 +83,39 @@ app/src/main/java/com/example/myapplication/
 - Android 7.0 (API 24) or higher
 - Internet connection for initial rate fetch and updates
 
+## Setup
+
+1. Clone the repository
+2. Copy `local.properties.example` to `local.properties`
+3. Configure ONE of the following options:
+
+### Option 1: Direct API (easiest)
+Get a free API key from [OpenExchangeRates](https://openexchangerates.org/) (1,000 requests/month free):
+```properties
+OPENEXCHANGERATES_API_KEY=your_api_key_here
+```
+
+### Option 2: Cloudflare Worker (recommended for heavy usage)
+Deploy your own Cloudflare Worker that fetches and caches rates:
+```properties
+EXCHANGE_RATE_WORKER_URL=https://your-worker.your-subdomain.workers.dev/
+```
+
+The Worker should return JSON in this format:
+```json
+{
+  "timestamp": 1234567890,
+  "base": "USD",
+  "rates": { "EUR": 0.85, "GBP": 0.73, ... },
+  "fetched_at": 1234567890000
+}
+```
+
 ## Building
 
 ```bash
 ./gradlew assembleDebug
 ```
-
-The app connects to a pre-configured Cloudflare Worker for exchange rates. No API keys required.
 
 ## License
 

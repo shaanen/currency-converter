@@ -14,30 +14,48 @@ import kotlinx.coroutines.flow.combine
  * Repository for exchange rates and user currency preferences.
  *
  * Handles:
- * - Fetching rates from API and caching in database
+ * - Fetching rates from API (Worker or direct OpenExchangeRates) and caching in database
  * - Providing currencies with rates as observable Flows
  * - Managing user's visible/hidden currencies and their order
  */
 class ExchangeRateRepository(
     private val api: ExchangeRateApi,
+    private val apiKey: String,
+    private val useWorkerMode: Boolean,
     private val exchangeRateDao: ExchangeRateDao,
     private val userCurrencyDao: UserCurrencyDao
 ) {
     /**
      * Fetches latest rates from API and stores in database.
      * On first run, also initializes default visible currencies.
+     *
+     * If Worker mode is enabled but fails, falls back to direct API if key is available.
      */
     suspend fun refreshRates(): Result<Unit> {
         return try {
-            val response = api.getLatestRates()
+            val response = if (useWorkerMode) {
+                try {
+                    api.getLatestRatesFromWorker()
+                } catch (e: Exception) {
+                    if (apiKey.isNotBlank()) {
+                        api.getLatestRatesFromApi(apiKey)
+                    } else {
+                        throw e
+                    }
+                }
+            } else {
+                api.getLatestRatesFromApi(apiKey)
+            }
 
             // Convert API response to database entities
+            // fetched_at is only available in Worker mode, use current time for direct API
+            val fetchedAt = response.fetched_at ?: System.currentTimeMillis()
             val entities = response.rates.map { (code, rate) ->
                 ExchangeRateEntity(
                     currencyCode = code,
                     rateToUsd = rate,
                     timestamp = response.timestamp * 1000,  // Convert to millis
-                    fetchedAt = response.fetched_at
+                    fetchedAt = fetchedAt
                 )
             }
             exchangeRateDao.insertAll(entities)

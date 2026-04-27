@@ -2,6 +2,7 @@ package com.example.myapplication.di
 
 import android.content.Context
 import androidx.room.Room
+import com.example.myapplication.BuildConfig
 import com.example.myapplication.data.api.ExchangeRateApi
 import com.example.myapplication.data.db.ExchangeRateDatabase
 import com.example.myapplication.data.repository.ExchangeRateRepository
@@ -18,19 +19,35 @@ import retrofit2.converter.gson.GsonConverterFactory
  * - Network client (Retrofit + OkHttp)
  * - Database (Room)
  * - Repositories
+ *
+ * Supports two modes for fetching exchange rates:
+ * - Worker mode: Uses custom Cloudflare Worker URL (set EXCHANGE_RATE_WORKER_URL)
+ * - Direct API mode: Uses OpenExchangeRates directly (set OPENEXCHANGERATES_API_KEY)
  */
 class AppContainer(context: Context) {
 
-    // HTTP client with logging for debugging API calls
+    // Determine which mode to use based on configuration
+    private val useWorkerMode = BuildConfig.EXCHANGE_RATE_WORKER_URL.isNotBlank()
+    private val baseUrl = if (useWorkerMode) {
+        BuildConfig.EXCHANGE_RATE_WORKER_URL
+    } else {
+        "https://openexchangerates.org/api/"
+    }
+
+    // HTTP client with logging for debugging API calls (debug builds only)
     private val okHttpClient: OkHttpClient = OkHttpClient.Builder()
-        .addInterceptor(HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
-        })
+        .apply {
+            if (BuildConfig.DEBUG) {
+                addInterceptor(HttpLoggingInterceptor().apply {
+                    level = HttpLoggingInterceptor.Level.BODY
+                })
+            }
+        }
         .build()
 
-    // Retrofit client for exchange rates Cloudflare Worker
+    // Retrofit client for exchange rates
     private val retrofit: Retrofit = Retrofit.Builder()
-        .baseUrl("https://exchange-rates.leuk.workers.dev/")
+        .baseUrl(baseUrl)
         .client(okHttpClient)
         .addConverterFactory(GsonConverterFactory.create())
         .build()
@@ -47,6 +64,8 @@ class AppContainer(context: Context) {
     // Public repositories for use by ViewModels
     val exchangeRateRepository: ExchangeRateRepository = ExchangeRateRepository(
         api = exchangeRateApi,
+        apiKey = BuildConfig.OPENEXCHANGERATES_API_KEY,
+        useWorkerMode = useWorkerMode,
         exchangeRateDao = database.exchangeRateDao(),
         userCurrencyDao = database.userCurrencyDao()
     )

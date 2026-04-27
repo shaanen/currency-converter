@@ -6,12 +6,14 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
-// Load API key from local.properties
+// Load configuration from local.properties
 val localProperties = Properties()
 val localPropertiesFile = rootProject.file("local.properties")
 if (localPropertiesFile.exists()) {
     localProperties.load(localPropertiesFile.inputStream())
 }
+val workerUrl = localProperties.getProperty("EXCHANGE_RATE_WORKER_URL", "")
+val apiKey = localProperties.getProperty("OPENEXCHANGERATES_API_KEY", "")
 
 android {
     namespace = "com.example.myapplication"
@@ -26,8 +28,9 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // Inject API key as BuildConfig field
-        buildConfigField("String", "OPENEXCHANGERATES_API_KEY", "\"${localProperties.getProperty("OPENEXCHANGERATES_API_KEY", "")}\"")
+        // Inject configuration as BuildConfig fields
+        buildConfigField("String", "EXCHANGE_RATE_WORKER_URL", "\"$workerUrl\"")
+        buildConfigField("String", "OPENEXCHANGERATES_API_KEY", "\"$apiKey\"")
     }
 
     buildTypes {

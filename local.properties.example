@@ -1,5 +1,17 @@
-# Copy this file to local.properties and add your API key
-# DO NOT commit local.properties to git
+# Copy this file to local.properties and configure ONE of the options below.
+# DO NOT commit local.properties to git!
+#
+# If both are configured, Worker is used first with API key as fallback.
 
-# Get your API key from https://openexchangerates.org/
-OPENEXCHANGERATES_API_KEY=your_api_key_here
+# =============================================================================
+# OPTION 1: Use your own Cloudflare Worker (recommended for heavy usage)
+# =============================================================================
+# Deploy the exchange-rates worker to your Cloudflare account, then set:
+# EXCHANGE_RATE_WORKER_URL=https://your-worker.your-subdomain.workers.dev/
+
+# =============================================================================
+# OPTION 2: Use OpenExchangeRates API directly
+# =============================================================================
+# Get a free API key from https://openexchangerates.org/
+# Free tier: 1,000 requests/month
+# OPENEXCHANGERATES_API_KEY=your_api_key_here
