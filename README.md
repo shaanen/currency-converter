@@ -95,20 +95,11 @@ Get a free API key from [OpenExchangeRates](https://openexchangerates.org/) (1,0
 OPENEXCHANGERATES_API_KEY=your_api_key_here
 ```
 
-### Option 2: Cloudflare Worker (recommended for heavy usage)
-Deploy your own Cloudflare Worker that fetches and caches rates:
+### Option 2: Cloudflare Worker (recommended if sharing your APK with friends)
+Deploy your own Cloudflare Worker that fetches and caches rates. See [`worker/README.md`](worker/README.md) for setup instructions.
+
 ```properties
 EXCHANGE_RATE_WORKER_URL=https://your-worker.your-subdomain.workers.dev/
-```
-
-The Worker should return JSON in this format:
-```json
-{
-  "timestamp": 1234567890,
-  "base": "USD",
-  "rates": { "EUR": 0.85, "GBP": 0.73, ... },
-  "fetched_at": 1234567890000
-}
 ```
 
 ## Building
