@@ -1,5 +1,7 @@
 # Currency Converter
 
+<img src="icon.png" width="128" alt="App Icon">
+
 A simple and fast Android currency converter app built with Jetpack Compose.
 
 ## Features
@@ -10,15 +12,14 @@ A simple and fast Android currency converter app built with Jetpack Compose.
 - **No ads**: The whole reason why I built this app
 
 ### Exchange Rates
-- **Automatic sync**: Rates update hourly in the background via WorkManager (aligned to :06 past the hour)
+- **Automatic sync**: Rates update hourly in the background via WorkManager (aligned with free API update schedule)
 - **Manual refresh**: Pull-to-refresh or tap the refresh button
-- **Freshness indicator**: Shows when rates were last fetched (e.g., "today 14:30 (fully up-to-date)")
-- **Flexible backend**: Supports both Cloudflare Worker or direct OpenExchangeRates API
+- **Freshness indicator**: Shows when rates were last fetched
+- **Flexible backend**: Supports both custom Worker (e.g. CloudFlare) or direct OpenExchangeRates API
 
 ### Customization
 - **Show/hide currencies**: Choose which currencies appear in your converter
 - **Reorder currencies**: Long-press and drag to reorder the list
-- **Search currencies**: Find currencies by code or name
 
 ### Number Formatting
 Choose your preferred number format in settings:
@@ -96,7 +97,8 @@ OPENEXCHANGERATES_API_KEY=your_api_key_here
 ```
 
 ### Option 2: Cloudflare Worker (recommended if sharing your APK with friends)
-Deploy your own Cloudflare Worker that fetches and caches rates. See [`worker/README.md`](worker/README.md) for setup instructions.
+Deploy your own Cloudflare Worker that fetches and caches rates. You will still the API key from option 1. 
+See [`worker/README.md`](worker/README.md) for setup instructions.
 
 ```properties
 EXCHANGE_RATE_WORKER_URL=https://your-worker.your-subdomain.workers.dev/
