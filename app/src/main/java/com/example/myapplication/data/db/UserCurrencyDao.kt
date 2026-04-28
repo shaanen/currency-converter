@@ -27,6 +27,12 @@ interface UserCurrencyDao {
     @Query("UPDATE user_currencies SET isVisible = :isVisible WHERE currencyCode = :code")
     suspend fun updateVisibility(code: String, isVisible: Boolean)
 
+    @Query("UPDATE user_currencies SET isVisible = :isVisible, position = :position WHERE currencyCode = :code")
+    suspend fun updateVisibilityAndPosition(code: String, isVisible: Boolean, position: Int)
+
+    @Query("SELECT COALESCE(MAX(position), -1) FROM user_currencies WHERE isVisible = 1")
+    suspend fun getMaxVisiblePosition(): Int
+
     @Query("SELECT COUNT(*) FROM user_currencies")
     suspend fun getCount(): Int
 }

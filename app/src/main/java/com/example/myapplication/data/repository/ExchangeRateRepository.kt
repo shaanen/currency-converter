@@ -120,7 +120,13 @@ class ExchangeRateRepository(
     suspend fun getLastUpdateTimestamp(): Long? = exchangeRateDao.getLastFetchedTimestamp()
 
     suspend fun updateCurrencyVisibility(code: String, isVisible: Boolean) {
-        userCurrencyDao.updateVisibility(code, isVisible)
+        if (isVisible) {
+            // When making visible, add to end of visible list
+            val maxPosition = userCurrencyDao.getMaxVisiblePosition()
+            userCurrencyDao.updateVisibilityAndPosition(code, true, maxPosition + 1)
+        } else {
+            userCurrencyDao.updateVisibility(code, false)
+        }
     }
 
     suspend fun updateCurrencyPositions(currencies: List<Currency>) {

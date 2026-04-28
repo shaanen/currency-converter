@@ -82,7 +82,7 @@ class ConverterViewModel(
                 CurrencyWithValue(currency, currencyValues[currency.code] ?: 0.0)
             },
             lastUpdated = lastUpdated,
-            isLoading = currencies.isEmpty(),
+            isLoading = currencies.isEmpty() && lastUpdated == null,
             isRefreshing = isRefreshing,
             error = error,
             decimalFormat = decimalFormat
@@ -125,9 +125,11 @@ class ConverterViewModel(
             }
 
             // Calculate initial values once currencies are available
-            val currencies = exchangeRateRepository.getVisibleCurrencies().first { it.isNotEmpty() }
-            val baseCurrency = lastEditedCurrencyCode ?: currencies.sortedBy { it.position }.first().code
-            recalculateAllValues(currencies, baseCurrency, lastEditedAmount)
+            val currencies = exchangeRateRepository.getVisibleCurrencies().first()
+            if (currencies.isNotEmpty()) {
+                val baseCurrency = lastEditedCurrencyCode ?: currencies.sortedBy { it.position }.first().code
+                recalculateAllValues(currencies, baseCurrency, lastEditedAmount)
+            }
 
             // Keep values updated when currency list changes
             observeCurrencyChanges()
@@ -140,21 +142,27 @@ class ConverterViewModel(
     private fun observeCurrencyChanges() {
         viewModelScope.launch {
             exchangeRateRepository.getVisibleCurrencies().collect { currencies ->
-                if (currencies.isNotEmpty() && _currencyValues.value.isNotEmpty()) {
-                    val currentValues = _currencyValues.value.toMutableMap()
+                if (currencies.isNotEmpty()) {
                     val sortedCurrencies = currencies.sortedBy { it.position }
 
-                    // Calculate values for any newly visible currencies
-                    sortedCurrencies.forEach { currency ->
-                        if (!currentValues.containsKey(currency.code)) {
-                            val baseCode = lastEditedCurrencyCode ?: sortedCurrencies.first().code
-                            val baseCurrency = sortedCurrencies.find { it.code == baseCode }
-                            if (baseCurrency != null) {
-                                currentValues[currency.code] = lastEditedAmount * (currency.rateToUsd / baseCurrency.rateToUsd)
+                    if (_currencyValues.value.isEmpty()) {
+                        // First time currencies become visible, calculate all values
+                        val baseCurrency = lastEditedCurrencyCode ?: sortedCurrencies.first().code
+                        recalculateAllValues(currencies, baseCurrency, lastEditedAmount)
+                    } else {
+                        // Calculate values for any newly visible currencies
+                        val currentValues = _currencyValues.value.toMutableMap()
+                        sortedCurrencies.forEach { currency ->
+                            if (!currentValues.containsKey(currency.code)) {
+                                val baseCode = lastEditedCurrencyCode ?: sortedCurrencies.first().code
+                                val baseCurrency = sortedCurrencies.find { it.code == baseCode }
+                                if (baseCurrency != null) {
+                                    currentValues[currency.code] = lastEditedAmount * (currency.rateToUsd / baseCurrency.rateToUsd)
+                                }
                             }
                         }
+                        _currencyValues.value = currentValues
                     }
-                    _currencyValues.value = currentValues
                 }
             }
         }
@@ -172,10 +180,12 @@ class ConverterViewModel(
                 _error.value = "Failed to refresh rates. Please check your connection."
             } else {
                 _lastUpdatedTimestamp.value = exchangeRateRepository.getLastUpdateTimestamp()
-                // Recalculate with new rates
-                val currencies = exchangeRateRepository.getVisibleCurrencies().first { it.isNotEmpty() }
-                val baseCurrency = lastEditedCurrencyCode ?: currencies.sortedBy { it.position }.first().code
-                recalculateAllValues(currencies, baseCurrency, lastEditedAmount)
+                // Recalculate with new rates if there are visible currencies
+                val currencies = exchangeRateRepository.getVisibleCurrencies().first()
+                if (currencies.isNotEmpty()) {
+                    val baseCurrency = lastEditedCurrencyCode ?: currencies.sortedBy { it.position }.first().code
+                    recalculateAllValues(currencies, baseCurrency, lastEditedAmount)
+                }
             }
             _isRefreshing.value = false
         }

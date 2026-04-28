@@ -73,6 +73,10 @@ class EditListViewModel(
     fun toggleCurrencyVisibility(currency: Currency) {
         viewModelScope.launch {
             repository.updateCurrencyVisibility(currency.code, !currency.isVisible)
+            // Clear search when making a currency visible
+            if (!currency.isVisible) {
+                _searchQuery.value = ""
+            }
         }
     }
 

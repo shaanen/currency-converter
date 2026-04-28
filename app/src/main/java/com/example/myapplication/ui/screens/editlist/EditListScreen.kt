@@ -53,6 +53,8 @@ import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.myapplication.domain.model.Currency
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberUpdatedState
 import kotlin.math.roundToInt
 
 /**
@@ -128,8 +130,11 @@ fun EditListScreen(
             val visibleCurrencies = uiState.currencies.filter { it.isVisible }
             val hiddenCurrencies = uiState.currencies.filter { !it.isVisible }
 
+            // Keep updated reference for use in pointer input
+            val currentVisibleCurrencies by rememberUpdatedState(visibleCurrencies)
+
             // Drag state for reordering
-            var draggedItemIndex by remember { mutableIntStateOf(-1) }
+            var draggedCurrencyCode by remember { mutableStateOf<String?>(null) }
             var dragOffset by remember { mutableFloatStateOf(0f) }
             val itemHeight = 72.dp
 
@@ -154,7 +159,7 @@ fun EditListScreen(
                         items = visibleCurrencies,
                         key = { _, currency -> "visible_${currency.code}" }
                     ) { index, currency ->
-                        val isDragging = draggedItemIndex == index
+                        val isDragging = draggedCurrencyCode == currency.code
                         val elevation by animateDpAsState(
                             targetValue = if (isDragging) 8.dp else 0.dp,
                             label = "elevation"
@@ -170,31 +175,36 @@ fun EditListScreen(
                                     IntOffset(0, if (isDragging) dragOffset.roundToInt() else 0)
                                 }
                                 .shadow(elevation, RoundedCornerShape(12.dp))
-                                .pointerInput(visibleCurrencies) {
+                                .pointerInput(currency.code) {
                                     detectDragGesturesAfterLongPress(
-                                        onDragStart = { draggedItemIndex = index },
+                                        onDragStart = { draggedCurrencyCode = currency.code },
                                         onDrag = { change, dragAmount ->
                                             change.consume()
                                             dragOffset += dragAmount.y
 
+                                            // Find current index of dragged currency using updated list
+                                            val currentIndex = currentVisibleCurrencies.indexOfFirst { it.code == draggedCurrencyCode }
+                                            if (currentIndex == -1) return@detectDragGesturesAfterLongPress
+
                                             // Calculate target position based on drag distance
                                             val itemHeightPx = itemHeight.toPx() + 8.dp.toPx()
-                                            val targetIndex = (index + (dragOffset / itemHeightPx).roundToInt())
-                                                .coerceIn(0, visibleCurrencies.size - 1)
+                                            val targetIndex = (currentIndex + (dragOffset / itemHeightPx).roundToInt())
+                                                .coerceIn(0, currentVisibleCurrencies.size - 1)
 
                                             // Move item if it crossed a threshold
-                                            if (targetIndex != index && draggedItemIndex != -1) {
-                                                viewModel.moveCurrency(index, targetIndex)
-                                                draggedItemIndex = targetIndex
-                                                dragOffset = 0f
+                                            if (targetIndex != currentIndex) {
+                                                viewModel.moveCurrency(currentIndex, targetIndex)
+                                                // Adjust offset by the distance moved, don't reset to 0
+                                                val itemsMoved = targetIndex - currentIndex
+                                                dragOffset -= itemsMoved * itemHeightPx
                                             }
                                         },
                                         onDragEnd = {
-                                            draggedItemIndex = -1
+                                            draggedCurrencyCode = null
                                             dragOffset = 0f
                                         },
                                         onDragCancel = {
-                                            draggedItemIndex = -1
+                                            draggedCurrencyCode = null
                                             dragOffset = 0f
                                         }
                                     )
@@ -242,8 +252,7 @@ private fun CurrencyEditItem(
 ) {
     Card(
         modifier = modifier
-            .fillMaxWidth()
-            .clickable { onToggleVisibility() },
+            .fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = if (currency.isVisible)
                 MaterialTheme.colorScheme.surfaceVariant
