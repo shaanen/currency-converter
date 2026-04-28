@@ -54,7 +54,10 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -91,7 +94,7 @@ fun ConverterScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
             Text(
-                text = "V0.26",
+                text = "V0.27",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                 modifier = Modifier
@@ -342,7 +345,15 @@ private fun CurrencyRow(
                     ),
                     singleLine = true,
                     cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                    readOnly = !isEditing
+                    readOnly = !isEditing,
+                    visualTransformation = if (isEditing) {
+                        ThousandsVisualTransformation(
+                            thousandsSeparator = decimalFormat.thousandsSeparator,
+                            decimalSeparator = decimalFormat.decimalSeparator
+                        )
+                    } else {
+                        VisualTransformation.None
+                    }
                 )
             }
         }
@@ -385,6 +396,70 @@ private fun parseValue(text: String, format: DecimalFormat): Double? {
         .replace(format.thousandsSeparator.toString(), "")
         .replace(format.decimalSeparator, '.')
     return normalized.toDoubleOrNull()
+}
+
+/**
+ * Visual transformation that adds thousands separators while editing.
+ * The underlying text stays clean (no separators), but display shows them.
+ */
+private class ThousandsVisualTransformation(
+    private val thousandsSeparator: Char,
+    private val decimalSeparator: Char
+) : VisualTransformation {
+    override fun filter(text: AnnotatedString): TransformedText {
+        val originalText = text.text
+
+        // Split into whole and decimal parts
+        val parts = originalText.split(decimalSeparator)
+        val wholePart = parts[0]
+        val decimalPart = if (parts.size > 1) parts[1] else null
+
+        // Add thousands separators to whole part
+        val formattedWhole = wholePart
+            .reversed()
+            .chunked(3)
+            .joinToString(thousandsSeparator.toString())
+            .reversed()
+
+        val formattedText = if (decimalPart != null) {
+            "$formattedWhole$decimalSeparator$decimalPart"
+        } else if (originalText.endsWith(decimalSeparator)) {
+            "$formattedWhole$decimalSeparator"
+        } else {
+            formattedWhole
+        }
+
+        // Calculate offset mapping for cursor positioning
+        val offsetMapping = object : OffsetMapping {
+            override fun originalToTransformed(offset: Int): Int {
+                // Count how many separators are before this offset in the transformed text
+                var transformedOffset = 0
+                var originalCount = 0
+
+                for (i in formattedText.indices) {
+                    if (originalCount == offset) break
+                    if (formattedText[i] != thousandsSeparator) {
+                        originalCount++
+                    }
+                    transformedOffset++
+                }
+                return transformedOffset
+            }
+
+            override fun transformedToOriginal(offset: Int): Int {
+                // Count non-separator characters up to this offset
+                var originalOffset = 0
+                for (i in 0 until offset.coerceAtMost(formattedText.length)) {
+                    if (formattedText[i] != thousandsSeparator) {
+                        originalOffset++
+                    }
+                }
+                return originalOffset.coerceAtMost(originalText.length)
+            }
+        }
+
+        return TransformedText(AnnotatedString(formattedText), offsetMapping)
+    }
 }
 
 /**
