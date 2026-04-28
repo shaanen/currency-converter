@@ -94,7 +94,7 @@ fun ConverterScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
             Text(
-                text = "V0.27",
+                text = "V0.28",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                 modifier = Modifier
@@ -364,8 +364,10 @@ private fun CurrencyRow(
  * Formats value for display with thousands separators and 2 decimal places.
  */
 private fun formatValue(value: Double, format: DecimalFormat): String {
-    val wholePart = value.toLong()
-    val decimalPart = ((value - wholePart) * 100).toLong()
+    // Round to 2 decimal places first to avoid floating-point precision issues
+    val rounded = Math.round(value * 100) / 100.0
+    val wholePart = rounded.toLong()
+    val decimalPart = Math.round((rounded - wholePart) * 100).toInt()
 
     val wholePartFormatted = wholePart.toString()
         .reversed()
