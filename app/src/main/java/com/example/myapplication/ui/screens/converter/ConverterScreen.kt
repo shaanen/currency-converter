@@ -94,7 +94,7 @@ fun ConverterScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
             Text(
-                text = "V0.28",
+                text = "V0.29",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                 modifier = Modifier
@@ -242,7 +242,7 @@ private fun CurrencyRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { onStartEditing() }
-                .padding(16.dp),
+                .padding(horizontal = 16.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Flag emoji
